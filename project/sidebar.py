@@ -2,70 +2,113 @@
 project/sidebar.py
 """
 
+from django.contrib.auth.context_processors import PermWrapper
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as trans
 
-from base.templatetags.basefilters import is_leave_approval_manager, is_reportingmanager
-from leave.templatetags.leavefilters import is_compensatory
+from base.templatetags.basefilters import is_reportingmanager
+from project.methods import (
+    any_project_manager,
+    any_project_member,
+    any_task_manager,
+    any_task_member,
+)
 
 MENU = trans("Project")
 IMG_SRC = "images/ui/project.png"
+ACCESSIBILITY = "project.sidebar.menu_accessibilty"
 
 SUBMENUS = [
     {
         "menu": trans("Dashboard"),
         "redirect": reverse("project-dashboard-view"),
-        # "accessibility": "leave.sidebar.dashboard_accessibility",
+        "accessibility": "project.sidebar.dashboard_accessibility",
     },
     {
         "menu": trans("Projects"),
         "redirect": reverse("project-view"),
+        "accessibility": "project.sidebar.project_accessibility",
     },
     {
         "menu": trans("Tasks"),
         "redirect": reverse("task-all"),
-        # "accessibility": "leave.sidebar.leave_request_accessibility",
+        "accessibility": "project.sidebar.task_accessibility",
     },
     {
         "menu": trans("Timesheet"),
         "redirect": reverse("view-time-sheet"),
-        # "accessibility": "leave.sidebar.type_accessibility",
+        "accessibility": "project.sidebar.timesheet_accessibility",
     },
 ]
 
 
-def dashboard_accessibility(request, submenu, user_perms, *args, **kwargs):
-    have_perm = request.user.has_perm("leave.view_leaverequest")
-    if not have_perm:
-        submenu["redirect"] = reverse("leave-employee-dashboard") + "?dashboard=true"
-    return True
-
-
-def leave_request_accessibility(request, submenu, user_perms, *args, **kwargs):
+def menu_accessibilty(
+    request, _menu: str = "", user_perms: PermWrapper = [], *args, **kwargs
+) -> bool:
+    user = request.user
     return (
-        request.user.has_perm("leave.view_leaverequest")
-        or is_leave_approval_manager(request.user)
-        or is_reportingmanager(request.user)
+        "project" in user_perms
+        or is_reportingmanager(user)
+        or any_project_manager(user)
+        or any_project_member(user)
+        or any_task_manager(user)
+        or any_task_member(user)
     )
 
 
-def type_accessibility(request, submenu, user_perms, *args, **kwargs):
-    return request.user.has_perm("leave.view_leavetype")
+def dashboard_accessibility(request, submenu, user_perms, *args, **kwargs):
+    user = request.user
+    if (
+        user.has_perm("project.view_project")
+        or is_reportingmanager(user)
+        or any_project_manager(user)
+        or any_task_manager(user)
+    ):
+        return True
+    else:
+        return False
 
 
-def assign_accessibility(request, submenu, user_perm, *args, **kwargs):
-    return request.user.has_perm("leave.view_assignedleave") or is_reportingmanager(
-        request.user
-    )
+def project_accessibility(request, submenu, user_perms, *args, **kwargs):
+    user = request.user
+    if (
+        user.has_perm("project.view_project")
+        or is_reportingmanager(user)
+        or any_project_manager(user)
+        or any_project_member(user)
+        or any_task_manager(user)
+        or any_task_member(user)
+    ):
+        return True
+    else:
+        return False
 
 
-def holiday_accessibility(request, submenu, user_perms, *args, **kwargs):
-    return not request.user.has_perm("leave.add_holiday")
+def task_accessibility(request, submenu, user_perms, *args, **kwargs):
+    user = request.user
+    if (
+        user.has_perm("project.view_task")
+        or is_reportingmanager(user)
+        or any_project_manager(user)
+        or any_project_member(user)
+        or any_task_manager(user)
+        or any_task_member(user)
+    ):
+        return True
+    else:
+        return False
 
 
-def company_leave_accessibility(request, submenu, user_perms, *args, **kwargs):
-    return not request.user.has_perm("leave.add_companyleave")
-
-
-def componstory_accessibility(request, submenu, user_perms, *args, **kwargs):
-    return is_compensatory(request.user)
+def timesheet_accessibility(request, submenu, user_perms, *args, **kwargs):
+    user = request.user
+    if (
+        user.has_perm("project.view_timesheet")
+        or is_reportingmanager(user)
+        or any_project_manager(user)
+        or any_project_member(user)
+        or any_task_manager(user)
+        or any_task_member(user)
+    ):
+        return True
+    else:
+        return False

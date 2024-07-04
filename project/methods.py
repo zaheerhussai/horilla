@@ -4,6 +4,7 @@ from django.contrib import messages
 from django.core.paginator import Paginator
 from django.http import HttpResponseRedirect
 
+from base.methods import get_pagination
 from employee.models import Employee
 from project.models import Project, Task, TimeSheet
 from recruitment.decorators import decorator_with_arguments
@@ -23,7 +24,7 @@ def paginator_qry(qryset, page_number):
     """
     This method is used to generate common paginator limit.
     """
-    paginator = Paginator(qryset, 20)
+    paginator = Paginator(qryset, get_pagination())
     qryset = paginator.get_page(page_number)
     return qryset
 
@@ -62,23 +63,57 @@ def generate_colors(num_colors):
     return colors
 
 
-# @decorator_with_arguments
-# def is_projectmanager(function,perm):
-#     def _function(request, *args, **kwargs):
+def any_project_manager(user):
+    employee = user.employee_get
+    if employee.project_manager.all().exists():
+        return True
+    else:
+        return False
 
-#         """
-#         This method is used to check the employee is project manager or not
-#         """
-#         print(Project.objects.get(id = project_id))
-#         if (request.user.has_perm(perm) or
-#         request.user.employee_get == Project.objects.get(id = project_id).manager or
-#         request.user.employee_get in Project.objects.get(id = project_id).members or
-#         Project.objects.get(id=project_id).employee_id in Employee.objects.filter(employee_work_info__reporting_manager_id=request.user.employee_get)
-#         ):
-#             return function(request, *args, **kwargs)
-#         messages.info(request, "You don't have permission.")
-#         return HttpResponseRedirect(request.META.get("HTTP_REFERER", "/"))
-#     return _function
+
+def any_project_member(user):
+    employee = user.employee_get
+    if employee.project_members.all().exists():
+        return True
+    else:
+        return False
+
+
+def any_task_manager(user):
+    employee = user.employee_get
+    if employee.task_set.all().exists():
+        return True
+    else:
+        return False
+
+
+def any_task_member(user):
+    employee = user.employee_get
+    if employee.tasks.all().exists():
+        return True
+    else:
+        return False
+
+
+@decorator_with_arguments
+def is_projectmanager_or_member_or_perms(function, perm):
+    def _function(request, *args, **kwargs):
+        """
+        This method is used to check the employee is project manager or not
+        """
+        user = request.user
+        if (
+            user.has_perm(perm)
+            or any_project_manager(user)
+            or any_project_member(user)
+            or any_task_manager(user)
+            or any_task_member(user)
+        ):
+            return function(request, *args, **kwargs)
+        messages.info(request, "You don't have permission.")
+        return HttpResponseRedirect(request.META.get("HTTP_REFERER", "/"))
+
+    return _function
 
 
 # def is_project_member(request,project_id):

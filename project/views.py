@@ -29,21 +29,14 @@ from project.methods import (
 from .decorator import *
 from .filters import ProjectFilter, TaskAllFilter, TaskFilter, TimeSheetFilter
 from .forms import *
-from .methods import is_task_manager, is_task_member
+from .methods import (
+    is_projectmanager_or_member_or_perms,
+    is_task_manager,
+    is_task_member,
+)
 from .models import *
 
 # Create your views here.
-
-
-def paginator_qry(qryset, page_number):
-    """
-    This method is used to paginate query set
-    """
-    paginator = Paginator(qryset, 16)
-    qryset = paginator.get_page(page_number)
-    return qryset
-
-
 # Dash board view
 
 
@@ -167,6 +160,7 @@ def project_detailed_view(request, project_id):
 
 
 @login_required
+@is_projectmanager_or_member_or_perms(perm="project.view_project")
 def project_view(request):
     """
     Overall view of project, the default view
@@ -936,11 +930,12 @@ def task_all(request):
     if request.GET.get("view") == "list":
         view_type = "list"
     context = {
-        "tasks": tasks,
+        "tasks": paginator_qry(tasks, request.GET.get("page")),
+        "pd": request.GET.urlencode(),
         "f": form,
         "view_type": view_type,
     }
-    return render(request, "./task_all/task_all_overall.html", context=context)
+    return render(request, "task_all/task_all_overall.html", context=context)
 
 
 @login_required

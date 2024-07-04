@@ -1,6 +1,13 @@
 from django.contrib import messages
 from django.http import HttpResponseRedirect
 
+from project.methods import (
+    any_project_manager,
+    any_project_member,
+    any_task_manager,
+    any_task_member,
+)
+
 from .models import Project, ProjectStage, Task
 
 decorator_with_arguments = (
@@ -8,6 +15,27 @@ decorator_with_arguments = (
         func, *args, **kwargs
     )
 )
+
+
+@decorator_with_arguments
+def is_projectmanager_or_member_or_perms(function, perm):
+    def _function(request, *args, **kwargs):
+        """
+        This method is used to check the employee is project manager or not
+        """
+        user = request.user
+        if (
+            user.has_perm(perm)
+            or any_project_manager(user)
+            or any_project_member(user)
+            or any_task_manager(user)
+            or any_task_member(user)
+        ):
+            return function(request, *args, **kwargs)
+        messages.info(request, "You don't have permission.")
+        return HttpResponseRedirect(request.META.get("HTTP_REFERER", "/"))
+
+    return _function
 
 
 @decorator_with_arguments
