@@ -484,7 +484,9 @@ class HorillaPasswordResetView(PasswordResetView):
             return redirect("forgot-password")
 
         username = form.cleaned_data["email"]
+        print(username)
         user = User.objects.filter(username=username).first()
+        print(user)
         if user:
             opts = {
                 "use_https": self.request.is_secure(),
